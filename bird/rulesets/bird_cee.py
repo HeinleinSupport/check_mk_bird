@@ -19,34 +19,59 @@
 #
 # Copyright 2014 by Frederik Kriewitz <frederik@kriewitz.eu>.
 
-try:
-    from cmk.gui.i18n import _
-    from cmk.gui.plugins.wato import (
-        HostRulespec,
-        rulespec_registry,
-    )
-    from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import RulespecGroupMonitoringAgentsAgentPlugins
-    from cmk.gui.valuespec import (
-        DropdownChoice,
-    )
-    
-    def _valuespec_agent_config_bird():
-        return DropdownChoice(
-            title = _("BIRD Internet Routing Daemon (Linux)"),
-            help = _("This will deploy the agent plugin <tt>bird</tt> for checking the BIRD Internet Routing Daemon."),
-            choices = [
-                ( True, _("Deploy plugin for BIRD") ),
-                ( None, _("Do not deploy plugin for BIRD") ),
-            ]
-        )
-    
-    rulespec_registry.register(
-        HostRulespec(
-            group=RulespecGroupMonitoringAgentsAgentPlugins,
-            name="agent_config:bird",
-            valuespec=_valuespec_agent_config_bird,
-        ))
+from cmk.rulesets.v1 import (
+    Help,
+    Label,
+    Title,
+)
+from cmk.rulesets.v1.form_specs import (
+    BooleanChoice,
+    DefaultValue,
+    DictElement,
+    Dictionary,
+)
+from cmk.rulesets.v1.rule_specs import (
+    AgentConfig,
+    Topic,
+)
 
-except ModuleNotFoundError:
-    # RAW edition
-    pass
+#   .--Bakery--------------------------------------------------------------.
+#   |                   ____        _                                      |
+#   |                  | __ )  __ _| | _____ _ __ _   _                    |
+#   |                  |  _ \ / _` | |/ / _ \ '__| | | |                   |
+#   |                  | |_) | (_| |   <  __/ |  | |_| |                   |
+#   |                  |____/ \__,_|_|\_\___|_|   \__, |                   |
+#   |                                             |___/                    |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+#.
+
+def _migrate_from_bool_to_dict(param):
+    if isinstance(param, bool):
+        param = {"deploy": param}
+    if not param:
+        param = {"deploy": False}
+    return param
+
+def _valuespec_agent_config_bird():
+    return Dictionary(
+        elements={
+            "deploy": DictElement(
+                required=True,
+                parameter_form=BooleanChoice(
+                    label=Label("Deploy plugin for BIRD"),
+                    prefill=DefaultValue(True),
+                ),
+            )
+        },
+        migrate=_migrate_from_bool_to_dict,
+    )
+
+rule_spec_bird_bakery = AgentConfig(
+    name="bird",
+    title=Title("BIRD Internet Routing Daemon (Linux)"),
+    help_text=Help("This will deploy the agent plugin <tt>bird</tt> for checking the BIRD Internet Routing Daemon."),
+    topic=Topic.APPLICATIONS,
+    parameter_form=_valuespec_agent_config_bird,
+)

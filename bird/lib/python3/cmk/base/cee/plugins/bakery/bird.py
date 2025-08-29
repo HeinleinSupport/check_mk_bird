@@ -16,13 +16,19 @@
 # Boston, MA 02110-1301 USA.
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict # pyright: ignore[reportShadowedImports]
 
-from .bakery_api.v1 import FileGenerator, OS, Plugin, register
+from cmk.base.plugins.bakery.bakery_api.v1 import (
+    FileGenerator,
+    OS,
+    Plugin,
+    register,
+)
 
 def get_bird_files(conf: Dict[str, Any]) -> FileGenerator:
-    yield Plugin(base_os=OS.LINUX,
-                 source=Path("bird"))
+    if conf.get("deploy"):
+        yield Plugin(base_os=OS.LINUX,
+                    source=Path("bird"))
 
 register.bakery_plugin(
     name="bird",

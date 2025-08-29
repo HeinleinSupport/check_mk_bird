@@ -19,136 +19,194 @@
 #
 # Copyright 2014 by Frederik Kriewitz <frederik@kriewitz.eu>.
 
-from cmk.gui.i18n import _
-from cmk.gui.valuespec import (
+from cmk.rulesets.v1 import (
+    Help,
+    Label,
+    Title,
+)
+from cmk.rulesets.v1.form_specs import (
+    BooleanChoice,
+    DataSize,
+    DefaultValue,
+    DictElement,
     Dictionary,
+    IECMagnitude,
     Integer,
-    Filesize,
-    Tuple,
+    InputHint,
+    LevelDirection,
+    migrate_to_integer_simple_levels,
+    Percentage,
+    SingleChoice,
+    SingleChoiceElement,
+    SimpleLevels,
+)
+from cmk.rulesets.v1.rule_specs import (
+    AgentConfig,
+    CheckParameters,
+    DiscoveryParameters,
+    HostAndItemCondition,
+    HostCondition,
+    Topic,
 )
 
-from cmk.gui.plugins.wato import (
-    rulespec_registry,
-    CheckParameterRulespecWithoutItem,
-    CheckParameterRulespecWithItem,
-    RulespecGroupCheckParametersApplications,
-)
+
+#   .--Parameter-----------------------------------------------------------.
+#   |          ____                                _                       |
+#   |         |  _ \ __ _ _ __ __ _ _ __ ___   ___| |_ ___ _ __            |
+#   |         | |_) / _` | '__/ _` | '_ ` _ \ / _ \ __/ _ \ '__|           |
+#   |         |  __/ (_| | | | (_| | | | | | |  __/ ||  __/ |              |
+#   |         |_|   \__,_|_|  \__,_|_| |_| |_|\___|\__\___|_|              |
+#   |                                                                      |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+#.
 
 # bird.status
 def _parameter_valuespec_bird_status():
     return Dictionary(
-        elements = [
-            ("uptime_low_threshold",
-                Integer(
-                    title = _("Warning if uptime is lower than"),
-                    unit = _("seconds"),
-                    default_value = 300
-                ),
-            ),
-            ("config_file_min_age",
-                Integer(
-                    title = _("Minimum config file age for last reconfiguration warnings:"),
-                    unit = _("seconds"),
-                    default_value = 60
-                ),
-            ),
-        ],
-        ignored_keys = ['config_files', 'memory', 'protocols', 'status', 'version'],
+        elements = {
+            'uptime_low_threshold': DictElement(
+                parameter_form=Integer(
+                    title=Title("Warning if uptime is lower than"),
+                    unit_symbol="seconds",
+                    prefill=DefaultValue(300),
+                )),
+            'config_file_min_age': DictElement(
+                parameter_form=Integer(
+                    title=Title("Minimum config file age for last reconfiguration warnings:"),
+                    unit_symbol="seconds",
+                    prefill=DefaultValue(60),
+                )),
+        },
+        ignored_elements = ("config_files", "memory", "protocols", "status", "version"),
     )
 
-rulespec_registry.register(
-    CheckParameterRulespecWithoutItem(
-        check_group_name="bird_status",
-        group=RulespecGroupCheckParametersApplications,
-        match_type="dict",
-        parameter_valuespec=_parameter_valuespec_bird_status,
-        title=lambda: _("BIRD Status"),
-    ))
+rule_spec_bird_status = CheckParameters(
+    name="bird_status",
+    topic=Topic.APPLICATIONS,
+    parameter_form=_parameter_valuespec_bird_status,
+    title=Title("BIRD Status"),
+    condition=HostCondition(),
+)
 
 
 # bird.memory
 def _parameter_valuespec_bird_memory():
     return Dictionary(
-        elements = [
-            ( "memory_levels_Total",
-              Tuple(
-                  title = _("Total memory usage"),
-                  elements = [
-                      Filesize(title = _("Warning if above")),
-                      Filesize(title = _("Critical if above")),
-                  ]
-              ),
-            )
-        ],
-        ignored_keys = ['config_files', 'memory', 'protocols', 'status', 'version'],
+        elements = {
+            "memory_levels_Total": DictElement(
+                parameter_form=SimpleLevels(
+                    title=Title("Total memory usage"),
+                    migrate=migrate_to_integer_simple_levels,
+                    form_spec_template=DataSize(
+                        displayed_magnitudes=[IECMagnitude.GIBI, IECMagnitude.MEBI, IECMagnitude.KIBI],
+                    ),
+                    level_direction=LevelDirection.UPPER,
+                    prefill_fixed_levels=InputHint(value=(0, 0)),
+                )),
+        },
+        ignored_elements = ("config_files", "memory", "protocols", "status", "version"),
     )
+
+# register memory parameters for each BIRD version
+rule_spec_bird_memory = CheckParameters(
+    name="bird_memory",
+    topic=Topic.APPLICATIONS,
+    parameter_form=_parameter_valuespec_bird_memory,
+    title=Title("BIRD Memory"),
+    condition=HostCondition(),
+)
+
+rule_spec_bird6_memory = CheckParameters(
+    name="bird6_memory",
+    topic=Topic.APPLICATIONS,
+    parameter_form=_parameter_valuespec_bird_memory,
+    title=Title("BIRD6 Memory"),
+    condition=HostCondition(),
+)
 
 # bird.protocols
-def _parameter_valuespec_bird_protocols():
+def _bird_stats_level(title):
     return Dictionary(
-        elements = [
-            ( "route_stats_levels",
-                Dictionary(
-                    title = _("Route Statistics Levels"),
-                    elements = [
-                        (i, Dictionary(
-                            title = _(i),
-                            elements = [
-                                ("lower",
-                                    Tuple(
-                                        help = _("Lower levels for the %s routes") % (i),
-                                        title = _("Lower levels"),
-                                        elements = [
-                                            Integer(title = _("warning if below")),
-                                            Integer(title = _("critical if below")),
-                                        ]
-                                    ),
-                                ),
-                                ( "upper",
-                                    Tuple(
-                                        help = _("Upper levels for the %s routes") % (i),
-                                        title = _("Upper levels"),
-                                        elements = [
-                                            Integer(title = _("warning if above")),
-                                            Integer(title = _("critical if above")),
-                                        ]),
-                                ),
-                            ],
-                            optional_keys = ["upper", "lower"],
-                        )) for i in ["imported", "filtered", "exported", "preferred"]
-                    ]
-                )
-            ),
-            ( "route_stats_levels_limit_warning_factor",
-                Percentage(title = _("Warning level for limit based thresholds"), unit = _("percent"), default_value = 90, minvalue = 0, maxvalue = 100),
-            )
-        ],
-        ignored_keys = ['config_files', 'memory', 'protocols', 'status', 'version'],
+        title=Title(title),
+        elements={
+            "lower": DictElement(
+                parameter_form=SimpleLevels(
+                    title=Title("Lower levels"),
+                    migrate=migrate_to_integer_simple_levels,
+                    help_text=Help(f"Lower levels for the {title} routes"),
+                    form_spec_template=Integer(),
+                    level_direction=LevelDirection.LOWER,
+                    prefill_fixed_levels=InputHint(value=(0, 0)),
+                )),
+            "upper": DictElement(
+                parameter_form=SimpleLevels(
+                    title=Title("Upper levels"),
+                    migrate=migrate_to_integer_simple_levels,
+                    help_text=Help(f"Upper levels for the {title} routes"),
+                    form_spec_template=Integer(),
+                    level_direction=LevelDirection.UPPER,
+                    prefill_fixed_levels=InputHint(value=(0, 0)),
+                )),
+        }
     )
 
-def _item_spec_bird_protocols():
-    return TextAscii(
-        title = _("Protocol"),
-        allow_empty = False
+def _parameter_valuespec_bird_protocols():
+    _bird_stats_elements = {}
+    for i in ["imported", "filtered", "exported", "preferred"]:
+        _bird_stats_elements[i] = DictElement(
+            parameter_form=_bird_stats_level(i),
+        )
+    return Dictionary(
+        elements = {
+            "route_stats_levels": DictElement(
+                parameter_form=Dictionary(
+                    title = Title("Route Statistics Levels"),
+                    elements = _bird_stats_elements,
+                )),
+            "route_stats_levels_limit_warning_factor": DictElement(
+                parameter_form=Percentage(
+                    title=Title("Warning level for limit based thresholds"),
+                    prefill=DefaultValue(value=90.0),
+                )),
+        },
+        ignored_elements = ('config_files', 'memory', 'protocols', 'status', 'version'),
     )
 
-# register memory/protocols parameters for each BIRD version
-for bird_version in [ "", "6" ]:
-    rulespec_registry.register(
-        CheckParameterRulespecWithoutItem(
-            check_group_name="bird%s_memory" % bird_version,
-            group=RulespecGroupCheckParametersApplications,
-            match_type="dict",
-            parameter_valuespec=_parameter_valuespec_bird_memory,
-            title=lambda: _("BIRD%s Memory" % bird_version),
-        ))
+# register protocols parameters for each BIRD version
+rule_spec_bird_protocols = CheckParameters(
+    name="bird_protocols",
+    topic=Topic.APPLICATIONS,
+    parameter_form=_parameter_valuespec_bird_protocols,
+    title=Title("BIRD Protocols"),
+    condition=HostAndItemCondition(
+        item_title=Title("Protocol"),
+    ),
+)
 
-    rulespec_registry.register(
-        CheckParameterRulespecWithItem(
-            check_group_name="bird%s_protocols" % bird_version,
-            group=RulespecGroupCheckParametersApplications,
-            item_spec=_item_spec_bird_protocols,
-            match_type="dict",
-            parameter_valuespec=_parameter_valuespec_bird_protocols,
-            title=lambda: _("BIRD%s Protocols" % bird_version),
-        ))
+rule_spec_bird6_protocols = CheckParameters(
+    name="bird6_protocols",
+    topic=Topic.APPLICATIONS,
+    parameter_form=_parameter_valuespec_bird_protocols,
+    title=Title("BIRD6 Protocols"),
+    condition=HostAndItemCondition(
+        item_title=Title("Protocol"),
+    ),
+)
+
+# def _item_spec_bird_protocols():
+#     return TextAscii(
+#         title = _("Protocol"),
+#         allow_empty = False
+#     )
+
+#     rulespec_registry.register(
+#         CheckParameterRulespecWithItem(
+#             check_group_name="bird%s_protocols" % bird_version,
+#             group=RulespecGroupCheckParametersApplications,
+#             item_spec=_item_spec_bird_protocols,
+#             match_type="dict",
+#             parameter_valuespec=_parameter_valuespec_bird_protocols,
+#             title=lambda: _("BIRD%s Protocols" % bird_version),
+#         ))
