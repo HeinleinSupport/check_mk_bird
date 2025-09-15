@@ -1,79 +1,41 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-# from functools import reduce
+from cmk.graphing.v1 import Title, metrics
 
-# metric_info['Routing_tables'] = {
-#     'title': _('Routing Tables'),
-#     'unit': 'bytes',
-#     "color" : "#00e060",
-# }
+UNIT_BYTES = metrics.Unit(metrics.IECNotation('B'))
+UNIT_COUNTER = metrics.Unit(metrics.DecimalNotation(''), metrics.StrictPrecision(2))
+UNIT_COUNTER_IMPORTED = metrics.Unit(metrics.DecimalNotation('imported'), metrics.StrictPrecision(2))
+UNIT_PER_SECOND = metrics.Unit(metrics.DecimalNotation('/s'))
+UNIT_TIME = metrics.Unit(metrics.TimeNotation())
 
-# metric_info['Route_attributes'] = {
-#     'title': _('Route Attributes'),
-#     'unit': 'bytes',
-#     "color" : "#0080e0",
-# }
-
-# metric_info['ROA_tables'] = {
-#     'title': _('ROA Tables'),
-#     'unit': 'bytes',
-#     "color" : "#cc00ff",
-# }
-
-# metric_info['Protocols'] = {
-#     'title': _('Protocols'),
-#     'unit': 'bytes',
-#     "color" : "#f900ff",
-# }
-
-# metric_info['Total'] = {
-#     'title': _('Total'),
-#     'unit': 'bytes',
-#     "color" : "#ff4c00",
-# }
-
-# metric_info['time_since_last_reconfiguration'] = {
-#     'title': _('Time since last reconfiguration'),
-#     'unit': 's',
-#     'color': '#cc00ff',
-# }
-
-# metric_info['route_stats_imported'] = {
-#     'title': _('Prefixes Imported'),
-#     'unit': 'count',
-#     'color': '#cc00ff',
-# }
-
-# metric_info['route_stats_exported'] = {
-#     'title': _('Prefixes Exported'),
-#     'unit': 'count',
-#     'color': '#f900ff',
-# }
-
-# metric_info['route_stats_preferred'] = {
-#     'title': _('Prefixes Preferred'),
-#     'unit': 'count',
-#     'color': '#ff4c00',
-# }
-
-# metric_info['since'] = {
-#     'title': _('Since'),
-#     'unit': 's',
-#     'color': '#cc00ff',
-# }
-
-# def bird_color(i, j, k):
-#     a = reduce(lambda x, y: x + ord(y), i, 0)
-#     b = reduce(lambda x, y: x + ord(y), j, 0)
-#     c = reduce(lambda x, y: x + ord(y), k, 0)
-#     return hex( (a * b * c) % 16777216)[2:].zfill(6)
-
-# for i in ['Import', 'Export']:
-#     for j in ['updates', 'withdraws']:
-#         for k in ['accepted', 'filtered', 'ignored', 'received', 'rejected']:
-#             metric_info['route_change_stats_%s_%s_%s' % (i, j, k)] = {
-#                 'title': _('%s %s %s' % (i, j, k)),
-#                 'unit': '1/s',
-#                 'color': '#%s' % bird_color(i, j, k),
-#             }
+metric_Protocols = metrics.Metric(name='Protocols', title=Title("Protocols"), unit=UNIT_BYTES, color=metrics.Color.DARK_PINK,)
+metric_ROA_tables = metrics.Metric(name='ROA_tables', title=Title("ROA Tables"), unit=UNIT_BYTES, color=metrics.Color.DARK_PINK,)
+metric_Route_attributes = metrics.Metric(name='Route_attributes', title=Title("Route Attributes"), unit=UNIT_BYTES, color=metrics.Color.DARK_BLUE,)
+metric_Routing_tables = metrics.Metric(name='Routing_tables', title=Title("Routing Tables"), unit=UNIT_BYTES, color=metrics.Color.GREEN,)
+metric_Total = metrics.Metric(name='Total', title=Title("Total"), unit=UNIT_BYTES, color=metrics.Color.ORANGE,)
+metric_route_change_stats_Export_updates_accepted = metrics.Metric(name='route_change_stats_Export_updates_accepted', title=Title("Export updates accepted"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_PINK,)
+metric_route_change_stats_Export_updates_filtered = metrics.Metric(name='route_change_stats_Export_updates_filtered', title=Title("Export updates filtered"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_PURPLE,)
+metric_route_change_stats_Export_updates_ignored = metrics.Metric(name='route_change_stats_Export_updates_ignored', title=Title("Export updates ignored"), unit=UNIT_PER_SECOND, color=metrics.Color.PURPLE,)
+metric_route_change_stats_Export_updates_received = metrics.Metric(name='route_change_stats_Export_updates_received', title=Title("Export updates received"), unit=UNIT_PER_SECOND, color=metrics.Color.GREEN,)
+metric_route_change_stats_Export_updates_rejected = metrics.Metric(name='route_change_stats_Export_updates_rejected', title=Title("Export updates rejected"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_GRAY,)
+metric_route_change_stats_Export_withdraws_accepted = metrics.Metric(name='route_change_stats_Export_withdraws_accepted', title=Title("Export withdraws accepted"), unit=UNIT_PER_SECOND, color=metrics.Color.CYAN,)
+metric_route_change_stats_Export_withdraws_filtered = metrics.Metric(name='route_change_stats_Export_withdraws_filtered', title=Title("Export withdraws filtered"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_BLUE,)
+metric_route_change_stats_Export_withdraws_ignored = metrics.Metric(name='route_change_stats_Export_withdraws_ignored', title=Title("Export withdraws ignored"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_CYAN,)
+metric_route_change_stats_Export_withdraws_received = metrics.Metric(name='route_change_stats_Export_withdraws_received', title=Title("Export withdraws received"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_YELLOW,)
+metric_route_change_stats_Export_withdraws_rejected = metrics.Metric(name='route_change_stats_Export_withdraws_rejected', title=Title("Export withdraws rejected"), unit=UNIT_PER_SECOND, color=metrics.Color.LIGHT_GRAY,)
+metric_route_change_stats_Import_updates_accepted = metrics.Metric(name='route_change_stats_Import_updates_accepted', title=Title("Import updates accepted"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_ORANGE,)
+metric_route_change_stats_Import_updates_filtered = metrics.Metric(name='route_change_stats_Import_updates_filtered', title=Title("Import updates filtered"), unit=UNIT_PER_SECOND, color=metrics.Color.GREEN,)
+metric_route_change_stats_Import_updates_ignored = metrics.Metric(name='route_change_stats_Import_updates_ignored', title=Title("Import updates ignored"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_GRAY,)
+metric_route_change_stats_Import_updates_received = metrics.Metric(name='route_change_stats_Import_updates_received', title=Title("Import updates received"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_BLUE,)
+metric_route_change_stats_Import_updates_rejected = metrics.Metric(name='route_change_stats_Import_updates_rejected', title=Title("Import updates rejected"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_CYAN,)
+metric_route_change_stats_Import_withdraws_accepted = metrics.Metric(name='route_change_stats_Import_withdraws_accepted', title=Title("Import withdraws accepted"), unit=UNIT_PER_SECOND, color=metrics.Color.LIGHT_BROWN,)
+metric_route_change_stats_Import_withdraws_filtered = metrics.Metric(name='route_change_stats_Import_withdraws_filtered', title=Title("Import withdraws filtered"), unit=UNIT_PER_SECOND, color=metrics.Color.GRAY,)
+metric_route_change_stats_Import_withdraws_ignored = metrics.Metric(name='route_change_stats_Import_withdraws_ignored', title=Title("Import withdraws ignored"), unit=UNIT_PER_SECOND, color=metrics.Color.LIGHT_BROWN,)
+metric_route_change_stats_Import_withdraws_received = metrics.Metric(name='route_change_stats_Import_withdraws_received', title=Title("Import withdraws received"), unit=UNIT_PER_SECOND, color=metrics.Color.GREEN,)
+metric_route_change_stats_Import_withdraws_rejected = metrics.Metric(name='route_change_stats_Import_withdraws_rejected', title=Title("Import withdraws rejected"), unit=UNIT_PER_SECOND, color=metrics.Color.DARK_BLUE,)
+metric_route_stats_exported = metrics.Metric(name='route_stats_exported', title=Title("Prefixes Exported"), unit=UNIT_COUNTER, color=metrics.Color.LIGHT_PINK,)
+metric_route_stats_imported = metrics.Metric(name='route_stats_imported', title=Title("Prefixes Imported"), unit=UNIT_COUNTER, color=metrics.Color.DARK_PINK,)
+metric_route_stats_preferred = metrics.Metric(name='route_stats_preferred', title=Title("Prefixes Preferred"), unit=UNIT_COUNTER, color=metrics.Color.ORANGE,)
+metric_since = metrics.Metric(name='since', title=Title("Since"), unit=UNIT_TIME, color=metrics.Color.DARK_PINK,)
+metric_time_since_last_reconfiguration = metrics.Metric(name='time_since_last_reconfiguration', title=Title("Time since last reconfiguration"), unit=UNIT_TIME, color=metrics.Color.DARK_PINK,)

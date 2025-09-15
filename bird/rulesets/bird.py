@@ -21,11 +21,9 @@
 
 from cmk.rulesets.v1 import (
     Help,
-    Label,
     Title,
 )
 from cmk.rulesets.v1.form_specs import (
-    BooleanChoice,
     DataSize,
     DefaultValue,
     DictElement,
@@ -36,14 +34,10 @@ from cmk.rulesets.v1.form_specs import (
     LevelDirection,
     migrate_to_integer_simple_levels,
     Percentage,
-    SingleChoice,
-    SingleChoiceElement,
     SimpleLevels,
 )
 from cmk.rulesets.v1.rule_specs import (
-    AgentConfig,
     CheckParameters,
-    DiscoveryParameters,
     HostAndItemCondition,
     HostCondition,
     Topic,
@@ -194,19 +188,3 @@ rule_spec_bird6_protocols = CheckParameters(
         item_title=Title("Protocol"),
     ),
 )
-
-# def _item_spec_bird_protocols():
-#     return TextAscii(
-#         title = _("Protocol"),
-#         allow_empty = False
-#     )
-
-#     rulespec_registry.register(
-#         CheckParameterRulespecWithItem(
-#             check_group_name="bird%s_protocols" % bird_version,
-#             group=RulespecGroupCheckParametersApplications,
-#             item_spec=_item_spec_bird_protocols,
-#             match_type="dict",
-#             parameter_valuespec=_parameter_valuespec_bird_protocols,
-#             title=lambda: _("BIRD%s Protocols" % bird_version),
-#         ))
