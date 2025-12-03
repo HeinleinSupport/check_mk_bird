@@ -94,25 +94,29 @@
 # 10000 1401204399 /etc/bird/bird.conf.common
 # 10000 1399909638 /etc/bird/bird.conf.local
 
-from .agent_based_api.v1.type_defs import (
+
+from collections.abc import Mapping # type: ignore
+from typing import Any # type: ignore
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    check_levels,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from .agent_based_api.v1 import (
-    check_levels,
     get_rate,
     get_value_store,
-    register,
+    Metric,
     render,
     Result,
-    Metric,
-    State,
+    RuleSetType,
     Service,
-    )
+    State,
+    StringTable,
+)
 
 import time
-import datetime
+import datetime # pyright: ignore[reportShadowedImports]
 
 _bird_status_default_levels = {
     "uptime_low_threshold": 300,
@@ -244,12 +248,12 @@ def parse_bird(string_table):
 
     return section
 
-register.agent_section(
+agent_section_bird = AgentSection(
     name="bird",
     parse_function=parse_bird,
 )
 
-register.agent_section(
+agent_section_bird6 = AgentSection(
     name="bird6",
     parse_function=parse_bird,
 )
@@ -320,12 +324,13 @@ def check_bird_memory(params, section) -> CheckResult:
         return
     for name, value_text, value_bytes in section['memory']:
         key = name.replace(" ", "_").split(":")[0]  # memory part wasn't parsed correctly, quick fix
-        warn, crit = params.get('memory_levels_'+key, (None, None))
-        yield from check_levels(value_bytes,
-                                levels_upper=(warn, crit),
-                                metric_name=key,
-                                render_func=render.bytes,
-                                label=name)
+        yield from check_levels(
+            value_bytes,
+            levels_upper=params.get(f"memory_levels_{key}"),
+            metric_name=key,
+            render_func=render.bytes,
+            label=name,
+        )
 
 def discover_bird_protocols(section) -> DiscoveryResult:
     for protocol in section.get('protocols', {}):
@@ -387,7 +392,7 @@ def check_bird_protocols(item, params, section) -> CheckResult:
         route_stats_levels_key = limit_name.lower().rstrip('e')+"ed"
         crit = limit['value']
         warn = int(params['route_stats_levels_limit_warning_factor']/100.0 * crit)
-        limit_bounds[route_stats_levels_key] = { 'upper': (warn, crit) }
+        limit_bounds[route_stats_levels_key] = { "upper": ("fixed", (warn, crit)) }
         if limit['hit']:
             state = State.CRIT
             if limit['action'] == "warn":
@@ -400,12 +405,14 @@ def check_bird_protocols(item, params, section) -> CheckResult:
         bounds = limit_bounds.get(key, {})
         if key in route_stats_levels:
             bounds.update(route_stats_levels[key])
-        yield from check_levels(value,
-                                levels_upper=bounds.get('upper', (None, None)),
-                                levels_lower=bounds.get('lower', (None, None)),
-                                metric_name="route_stats_"+key,
-                                label=key,
-                                notice_only=True)
+        yield from check_levels(
+            value,
+            levels_upper=bounds.get('upper'),
+            levels_lower=bounds.get('lower'),
+            metric_name="route_stats_"+key,
+            label=key,
+            notice_only=True,
+        )
 
     this_time = time.time()
     value_store = get_value_store()
@@ -437,7 +444,7 @@ def check_bird_protocols(item, params, section) -> CheckResult:
                 yield Result(state=State.WARN,
                              summary="state of %s is %s" % (neighbour['Router_IP'], neighbour_state))
 
-register.check_plugin(
+check_plugin_bird_status = CheckPlugin(
     name="bird_status",
     service_name="BIRD Status",
     sections=["bird"],
@@ -447,7 +454,7 @@ register.check_plugin(
     check_ruleset_name="bird_status",
 )
 
-register.check_plugin(
+check_plugin_bird6_status = CheckPlugin(
     name="bird6_status",
     service_name="BIRD6 Status",
     sections=["bird6"],
@@ -457,7 +464,7 @@ register.check_plugin(
     check_ruleset_name="bird_status",
 )
 
-register.check_plugin(
+check_plugin_bird_memory = CheckPlugin(
     name="bird_memory",
     service_name="BIRD Memory",
     sections=["bird"],
@@ -467,7 +474,7 @@ register.check_plugin(
     check_ruleset_name="bird_memory",
 )
 
-register.check_plugin(
+check_plugin_bird5_memory = CheckPlugin(
     name="bird6_memory",
     service_name="BIRD6 Memory",
     sections=["bird6"],
@@ -477,7 +484,7 @@ register.check_plugin(
     check_ruleset_name="bird6_memory",
 )
 
-register.check_plugin(
+check_plugin_bird_protocols = CheckPlugin(
     name="bird_protocols",
     service_name="BIRD Protocol %s",
     sections=["bird"],
@@ -487,7 +494,7 @@ register.check_plugin(
     check_ruleset_name="bird_protocols",
 )
 
-register.check_plugin(
+check_plugin_bird6_protocols = CheckPlugin(
     name="bird6_protocols",
     service_name="BIRD6 Protocol %s",
     sections=["bird6"],
